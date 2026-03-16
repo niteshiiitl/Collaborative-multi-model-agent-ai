@@ -33,8 +33,15 @@ def get_llm(provider: str = DEFAULT_LLM):
 
 class BaseAgent(ABC):
     def __init__(self, llm_provider: str = DEFAULT_LLM):
-        self.llm = get_llm(llm_provider)
+        self.llm_provider = llm_provider
+        self._llm = None  # lazy init
         self.name = "BaseAgent"
+
+    @property
+    def llm(self):
+        if self._llm is None:
+            self._llm = get_llm(self.llm_provider)
+        return self._llm
 
     @abstractmethod
     def run(self, task: str, **kwargs) -> dict:

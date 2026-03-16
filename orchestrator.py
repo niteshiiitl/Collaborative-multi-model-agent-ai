@@ -31,8 +31,14 @@ Choose the most relevant agent(s). If multiple outputs are needed, list all."""
 
 class Orchestrator:
     def __init__(self, llm_provider: str = DEFAULT_LLM):
-        self.llm = get_llm(llm_provider)
         self.llm_provider = llm_provider
+        self._llm = None  # lazy init
+
+    @property
+    def llm(self):
+        if self._llm is None:
+            self._llm = get_llm(self.llm_provider)
+        return self._llm
 
     def route(self, task: str) -> list[str]:
         """Use LLM to decide which agents to invoke."""
