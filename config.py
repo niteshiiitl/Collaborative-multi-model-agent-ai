@@ -4,12 +4,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def _get(key, default=None):
-    # Try Streamlit secrets first (production), fall back to env (local)
     try:
         import streamlit as st
-        return st.secrets.get(key, os.getenv(key, default))
+        if hasattr(st, "secrets") and key in st.secrets:
+            return st.secrets[key]
     except Exception:
-        return os.getenv(key, default)
+        pass
+    return os.getenv(key, default)
 
 GEMINI_API_KEY = _get("GEMINI_API_KEY")
 GROQ_API_KEY = _get("GROQ_API_KEY")
