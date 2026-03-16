@@ -1,40 +1,44 @@
 import os
 from abc import ABC, abstractmethod
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_groq import ChatGroq
-from langchain_openai import ChatOpenAI
-from config import LLM_CONFIGS, DEFAULT_LLM
+from config import DEFAULT_LLM
 
 
-def _secret(key: str) -> str:
-    """Read from Streamlit secrets at runtime, fall back to env vars."""
+def _load_secrets():
+    """Push Streamlit secrets into os.environ so LangChain picks them up automatically."""
     try:
         import streamlit as st
-        if key in st.secrets:
-            return st.secrets[key]
+        for key in ["GEMINI_API_KEY", "GROQ_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY"]:
+            if key in st.secrets and not os.environ.get(key):
+                os.environ[key] = st.secrets[key]
+        # LangChain Google also checks GOOGLE_API_KEY
+        if "GEMINI_API_KEY" in st.secrets and not os.environ.get("GOOGLE_API_KEY"):
+            os.environ["GOOGLE_API_KEY"] = st.secrets["GEMINI_API_KEY"]
     except Exception:
         pass
-    return os.getenv(key, "")
 
 
 def get_llm(provider: str = DEFAULT_LLM):
+    _load_secrets()  # ensure env vars are set before LangChain reads them
+
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_groq import ChatGroq
+    from langchain_openai import ChatOpenAI
+    from config import LLM_CONFIGS
+
     cfg = LLM_CONFIGS[provider]
     if provider == "gemini":
-        api_key = _secret("GEMINI_API_KEY")
-        return ChatGoogleGenerativeAI(model=cfg["model"], google_api_key=api_key)
+        return ChatGoogleGenerativeAI(model=cfg["model"])
     elif provider == "groq":
-        api_key = _secret("GROQ_API_KEY")
-        return ChatGroq(model=cfg["model"], groq_api_key=api_key)
+        return ChatGroq(model=cfg["model"])
     elif provider == "openai":
-        api_key = _secret("OPENAI_API_KEY")
-        return ChatOpenAI(model=cfg["model"], openai_api_key=api_key)
+        return ChatOpenAI(model=cfg["model"])
     raise ValueError(f"Unknown LLM provider: {provider}")
 
 
 class BaseAgent(ABC):
     def __init__(self, llm_provider: str = DEFAULT_LLM):
         self.llm_provider = llm_provider
-        self._llm = None  # lazy init
+        self._llm = None
         self.name = "BaseAgent"
 
     @property
@@ -48,5 +52,4 @@ class BaseAgent(ABC):
         pass
 
     def think(self, prompt: str) -> str:
-        response = self.llm.invoke(prompt)
-        return response.content
+        return self.llm.invoke(prompt).content
