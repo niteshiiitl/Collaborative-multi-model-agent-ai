@@ -7,7 +7,17 @@ from orchestrator import Orchestrator
 
 st.set_page_config(page_title="Multi-Agent System", page_icon="🤖", layout="wide")
 
-st.title("🤖 Collaborative Multi-Agent System")
+# Debug: show what secrets are available (remove after fixing)
+with st.expander("Debug: Secrets Check"):
+    try:
+        keys = list(st.secrets.keys())
+        st.write("Secret keys found:", keys)
+        gemini = st.secrets.get("GEMINI_API_KEY", "NOT FOUND")
+        st.write("GEMINI_API_KEY:", "SET" if gemini and gemini != "NOT FOUND" else "MISSING")
+    except Exception as e:
+        st.error(f"Secrets error: {e}")
+
+st.title("Collaborative Multi-Agent System")
 st.caption("Powered by Gemini · Groq · OpenAI via LangChain")
 
 # Sidebar config
